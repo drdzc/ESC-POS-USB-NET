@@ -10,11 +10,11 @@ namespace ESC_POS_USB_NET.EpsonCommands
     {
         private static BitmapData GetBitmapData(Bitmap bmp)
         {
-  
                 var threshold = 127;
                 var index = 0;
-                double multiplier = 576; // this depends on your printer model.
-                double scale = (double)(multiplier / (double)bmp.Width);
+            //double multiplier = 576; // this depends on your printer model.
+            double multiplier = 200; // this depends on your printer model.
+            double scale = (double)(multiplier / (double)bmp.Width);
                 int xheight = (int)(bmp.Height * scale);
                 int xwidth = (int)(bmp.Width * scale);
                 var dimensions = xwidth * xheight;
@@ -54,6 +54,10 @@ namespace ESC_POS_USB_NET.EpsonCommands
 
             bw.Write((char)0x1B);
             bw.Write('@');
+
+            bw.Write((char)0x1B);
+            bw.Write((char)0x61);
+            bw.Write((char)0x01);
 
             bw.Write((char)0x1B);
             bw.Write('3');

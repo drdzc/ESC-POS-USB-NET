@@ -8,7 +8,7 @@
         Title="MainWindow" Height="497.156" Width="549.401">
     <Grid>
         <StackPanel Margin="20">
-            <TextBox x:Name="txtPrinterName" Height="40" FontSize="24">SGT-88IV Printer</TextBox>
+            <TextBox x:Name="txtPrinterName" Height="40" FontSize="24">Star BSC10</TextBox>
             <Separator Margin="0,30,0,0"></Separator>
             <Button Height="40" FontSize="18" Click="Button_Click">Test Print</Button>
             <Separator Margin="0,30,0,0"></Separator>
