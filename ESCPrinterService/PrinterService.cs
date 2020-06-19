@@ -2,19 +2,75 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using TestPrinterApp;
-using Topshelf;
 
 namespace ESCPrinterService
 {
-    class Program
+    class PrinterService
     {
-        static void Main(string[] args)
+        ConnectionFactory factory;
+        IConnection conn;
+        IModel channel;
+        public void CreateRabbitMQListener()
         {
-            var printerListener = new PrinterService();
-            printerListener.CreateRabbitMQListener();
+            Bitmap image = null;
+            try
+            {
+                image = new Bitmap(Bitmap.FromFile(@"logoma.bmp"));
+            }
+            catch (Exception e) { }
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            factory = new ConnectionFactory() { HostName = "localhost", Port = 5672, UserName = "admin", Password = "admin" };
+            conn = factory.CreateConnection();
+            channel = conn.CreateModel();
+            channel.ExchangeDeclare(exchange: "orders", durable: false, type: ExchangeType.Direct);
+            var queueName = channel.QueueDeclare().QueueName;
+            channel.QueueBind(queue: queueName, exchange: "orders", routingKey: "orders");
+            Console.WriteLine(" [*] Waiting for messages.");
+            var consumer = new EventingBasicConsumer(channel);
+            consumer.Received += (model, ea) =>
+            {
+                var body = ea.Body;
+                var messageStr = Encoding.UTF8.GetString(body.ToArray());
+                Console.WriteLine(" [x] Received {0}", messageStr);
+                var data = Newtonsoft.Json.JsonConvert.DeserializeObject<PurchaseOrderSingleItem>(messageStr);
+                PrintTicket(data, image);
+            };
+
+            channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+
+            Console.WriteLine(" Press [enter] to exit.");
+            Console.ReadLine();
+            /*Bitmap image = new Bitmap(Bitmap.FromFile(@"logoma.bmp"));
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            var factory = new ConnectionFactory() { HostName = "localhost", Port = 5672 };
+            using (var conn = factory.CreateConnection())
+            {
+                using (var channel = conn.CreateModel())
+                {
+                    channel.ExchangeDeclare(exchange: "orders", durable: false, type: ExchangeType.Direct);
+                    var queueName = channel.QueueDeclare().QueueName;
+                    channel.QueueBind(queue: queueName, exchange: "orders", routingKey: "orders");
+                    Console.WriteLine(" [*] Waiting for messages.");
+                    var consumer = new EventingBasicConsumer(channel);
+                    consumer.Received += (model, ea) =>
+                    {
+                        var body = ea.Body;
+                        var messageStr = Encoding.UTF8.GetString(body.ToArray());
+                        Console.WriteLine(" [x] Received {0}", messageStr);
+                        var test = Newtonsoft.Json.JsonConvert.DeserializeObject<PurchaseOrderSingleItem>(messageStr);
+                        PrintTestPage(test, image);
+                    };
+
+                    channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+
+                    Console.WriteLine(" Press [enter] to exit.");
+                    Console.ReadLine();
+                }
+            }*/
         }
 
         private static void PrintTicket(PurchaseOrderSingleItem po, Bitmap image)
@@ -110,16 +166,6 @@ namespace ESCPrinterService
             printer.OpenDrawer();
             printer.FullPaperCut();
             printer.PrintDocument();
-        }
-
-        private static Bitmap ResizeBMP(Bitmap bmp, int width, int height)
-        {
-            Bitmap result = new Bitmap(width, height);
-            using (Graphics g = Graphics.FromImage(result))
-            {
-                g.DrawImage(bmp, 0, 0, width, height);
-            }
-            return result;
         }
     }
 }
